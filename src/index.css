@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================
+   Global RTL & Base Styles
+========================= */
+
+html {
+  direction: rtl;
+}
+
+body {
+  font-family: "Cairo", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  direction: rtl;
+  text-align: right;
+  color: #0f172a; /* slate-900 */
+  background: #f7fbf9; /* أخضر فاتح جدًا */
+  min-height: 100vh;
+}
+
+/* =========================
+   Inputs RTL
+========================= */
+
+input,
+select,
+textarea {
+  text-align: right;
+}
+
+/* Placeholder RTL */
+::placeholder {
+  text-align: right;
+}
+
+/* =========================
+   Scrollbar (ناعم وهادي)
+========================= */
+
+::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #10b981; /* emerald-500 */
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #059669; /* emerald-600 */
+}
+
+/* =========================
+   Utility Classes (Theme)
+========================= */
+
+@layer utilities {
+  /* خلفية التطبيق */
+  .bg-app {
+    @apply bg-gradient-to-br from-emerald-50 via-white to-teal-50;
+  }
+
+  /* Hero / Header Gradient */
+  .bg-hero {
+    @apply bg-gradient-to-br from-emerald-600 to-teal-600;
+  }
+
+  /* Card أساسي */
+  .card {
+    @apply bg-white/80 backdrop-blur rounded-3xl border border-emerald-100 shadow-sm;
+  }
+
+  /* عنوان أساسي */
+  .section-title {
+    @apply text-lg sm:text-xl font-extrabold text-slate-800;
+  }
+
+  /* نص مساعد */
+  .muted-text {
+    @apply text-sm text-slate-500;
+  }
+
+  /* زر أساسي */
+  .btn-primary {
+    @apply bg-emerald-600 text-white font-extrabold rounded-2xl px-4 py-2
+           hover:bg-emerald-700 transition shadow-sm;
+  }
+
+  /* زر ثانوي */
+  .btn-secondary {
+    @apply bg-white text-emerald-700 font-extrabold rounded-2xl px-4 py-2
+           border border-emerald-100 hover:bg-emerald-50 transition;
+  }
+}
+
+/* =========================
+   Auth Styles (Login)
+========================= */
+
+.auth-input-field {
+  @apply w-full px-4 py-3 rounded-2xl bg-white border border-slate-200
+         focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500
+         outline-none transition shadow-sm;
+}
+
+.auth-button {
+  @apply w-full px-4 py-3 rounded-2xl bg-emerald-600 text-white
+         font-extrabold hover:bg-emerald-700 transition shadow;
+}
+/* لون فاتح نعناع للبطاقات (زي الصورة) */
+.bg-mint {
+  background: linear-gradient(135deg, rgba(16,185,129,0.10), rgba(14,165,233,0.08));
+}
