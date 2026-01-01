@@ -1,4 +1,3 @@
-// src/components/CalorieCalculator.tsx
 import React, { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -12,7 +11,7 @@ import {
   Gauge,
   Sparkles,
 } from "lucide-react";
-import { useLanguage } from "../lib/i18n";
+import { useLanguage } from "@/lib/i18n";
 
 type ActivityLevel =
   | "sedentary"
@@ -42,6 +41,18 @@ function fmt(n: number) {
 
 function cn(...classes: Array<string | false | undefined | null>) {
   return classes.filter(Boolean).join(" ");
+}
+
+function goalAccent(goal: Goal) {
+  if (goal === "cut") return "from-red-500 to-pink-600";
+  if (goal === "bulk") return "from-orange-500 to-yellow-600";
+  return "from-green-500 to-emerald-600";
+}
+
+function goalBorder(goal: Goal) {
+  if (goal === "cut") return "border-red-200";
+  if (goal === "bulk") return "border-orange-200";
+  return "border-green-200";
 }
 
 /**
@@ -108,7 +119,10 @@ function PillButton({
 }
 
 export function CalorieCalculator() {
-  const { t, language } = useLanguage();
+  const { t, language, dir } = useLanguage();
+
+  const textAlign = dir === "rtl" ? "text-right" : "text-left";
+  const textStart = dir === "rtl" ? "text-start" : "text-start"; // Tailwind text-start respects dir in modern browsers
 
   const [calculatorData, setCalculatorData] = useState({
     age: "",
@@ -155,54 +169,12 @@ export function CalorieCalculator() {
       : "skip"
   );
 
-  const activityLevels: Record<ActivityLevel, string> = useMemo(
-    () => ({
-      sedentary:
-        language === "ar"
-          ? "قليل الحركة (عمل مكتبي)"
-          : "Sedentary (desk job)",
-      light:
-        language === "ar"
-          ? "نشاط خفيف (تمرين 1-3 أيام/أسبوع)"
-          : "Light (1–3 days/week)",
-      moderate:
-        language === "ar"
-          ? "نشاط متوسط (تمرين 3-5 أيام/أسبوع)"
-          : "Moderate (3–5 days/week)",
-      active:
-        language === "ar"
-          ? "نشاط عالي (تمرين 6-7 أيام/أسبوع)"
-          : "Active (6–7 days/week)",
-      very_active:
-        language === "ar"
-          ? "نشاط عالي جداً (تمرين مكثف يومياً)"
-          : "Very active (intense daily)",
-    }),
-    [language]
-  );
-
-  const goalLabel = (g: Goal) => {
-    if (g === "cut") return t("goal_cut");
-    if (g === "bulk") return t("goal_bulk");
-    return t("goal_maintenance");
-  };
-
-  const goalShort = (g: Goal) => {
-    if (g === "cut") return t("goal_cut_short");
-    if (g === "bulk") return t("goal_bulk_short");
-    return t("goal_maintenance_short");
-  };
-
-  const goalAccent = (g: Goal) => {
-    if (g === "cut") return "from-red-500 to-pink-600";
-    if (g === "bulk") return "from-orange-500 to-yellow-600";
-    return "from-green-500 to-emerald-600";
-  };
-
-  const goalBorder = (g: Goal) => {
-    if (g === "cut") return "border-red-200";
-    if (g === "bulk") return "border-orange-200";
-    return "border-green-200";
+  const activityLevels: Record<ActivityLevel, string> = {
+    sedentary: t("sedentary"),
+    light: t("light_activity"),
+    moderate: t("moderate_activity"),
+    active: t("active"),
+    very_active: t("very_active"),
   };
 
   const weightKg = useMemo(() => {
@@ -248,15 +220,17 @@ export function CalorieCalculator() {
       { label: t("fat"), cals: macros.fatCals },
     ].sort((a, b) => b.cals - a.cals);
 
-    const tip =
-      goal === "cut"
-        ? t("smart_tip_cut")
-        : goal === "bulk"
-        ? t("smart_tip_bulk")
-        : t("smart_tip_maintenance");
+    const top = items[0];
 
-    return { top: items[0], tip };
+    const tip =
+      goal === "cut" ? t("tip_cut") : goal === "bulk" ? t("tip_bulk") : t("tip_maint");
+
+    return { top, tip };
   }, [macros, goal, t]);
+
+  const goalLabel = (g: Goal) => (g === "cut" ? t("cut") : g === "bulk" ? t("bulk") : t("maintenance"));
+  const goalShort = (g: Goal) =>
+    g === "cut" ? t("goal_short_cut") : g === "bulk" ? t("goal_short_bulk") : t("goal_short_maintenance");
 
   const addFood = (foodId: string) => {
     setSelectedFoods((prev) => {
@@ -275,25 +249,33 @@ export function CalorieCalculator() {
     setSelectedFoods((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const getFoodName = (food: any) => {
+    if (language === "ar") return food.nameAr || t("no_ar_name");
+    return food.name || t("no_en_name");
+  };
+
   return (
     <div className="space-y-8">
+      {/* File Path */}
+      <div className={cn("text-xs text-gray-400", textStart)}>
+        src/components/CalorieCalculator.tsx
+      </div>
+
       {/* Header */}
       <div className="text-center">
         <div className="flex items-center justify-center gap-3 mb-4">
           <span className="text-5xl">🧮</span>
           <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            {t("calorie_macros_title")}
+            {t("macros_title")}
           </h2>
         </div>
-        <p className="text-gray-600 text-lg">
-          {t("calorie_macros_subtitle")}
-        </p>
+        <p className="text-gray-600 text-lg">{t("macros_subtitle")}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Daily Calculator */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-blue-200 shadow-lg">
-          <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+          <h3 className={cn("text-xl font-bold text-gray-800 mb-6 flex items-center gap-2", textAlign)}>
             <span className="text-2xl">⚡</span>
             {t("daily_needs_smart")}
           </h3>
@@ -302,7 +284,7 @@ export function CalorieCalculator() {
             {/* Age + Gender */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={cn("block text-sm font-medium text-gray-700 mb-2", textAlign)}>
                   {t("age")}
                 </label>
                 <input
@@ -319,7 +301,7 @@ export function CalorieCalculator() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={cn("block text-sm font-medium text-gray-700 mb-2", textAlign)}>
                   {t("gender")}
                 </label>
                 <select
@@ -341,7 +323,7 @@ export function CalorieCalculator() {
             {/* Weight + Height */}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={cn("block text-sm font-medium text-gray-700 mb-2", textAlign)}>
                   {t("weight")} ({t("kg")})
                 </label>
                 <input
@@ -359,7 +341,7 @@ export function CalorieCalculator() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={cn("block text-sm font-medium text-gray-700 mb-2", textAlign)}>
                   {t("height")} ({t("cm")})
                 </label>
                 <input
@@ -378,7 +360,7 @@ export function CalorieCalculator() {
 
             {/* Activity */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className={cn("block text-sm font-medium text-gray-700 mb-2", textAlign)}>
                 {t("activity_level")}
               </label>
               <select
@@ -403,7 +385,7 @@ export function CalorieCalculator() {
             <div className="mt-2 space-y-4">
               {/* Goal */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={cn("block text-sm font-medium text-gray-700 mb-2", textAlign)}>
                   {t("your_goal")}
                 </label>
                 <div className="grid grid-cols-3 gap-3">
@@ -433,7 +415,7 @@ export function CalorieCalculator() {
 
               {/* Protein per KG */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={cn("block text-sm font-medium text-gray-700 mb-2", textAlign)}>
                   <span className="inline-flex items-center gap-2">
                     <Beef className="w-4 h-4" />
                     {t("protein_per_kg")}
@@ -450,17 +432,15 @@ export function CalorieCalculator() {
                     </PillButton>
                   ))}
                 </div>
-                <div className="mt-2 text-xs text-gray-500">
-                  {t("protein_tip")}
-                </div>
+                <div className={cn("mt-2 text-xs text-gray-500", textAlign)}>{t("protein_hint")}</div>
               </div>
 
               {/* Fat percent */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={cn("block text-sm font-medium text-gray-700 mb-2", textAlign)}>
                   <span className="inline-flex items-center gap-2">
                     <Droplets className="w-4 h-4" />
-                    {t("healthy_fat_percent")}
+                    {t("fat_percentage")}
                   </span>
                 </label>
                 <div className="grid grid-cols-3 gap-3">
@@ -474,17 +454,15 @@ export function CalorieCalculator() {
                     </PillButton>
                   ))}
                 </div>
-                <div className="mt-2 text-xs text-gray-500">
-                  {t("fat_tip")}
-                </div>
+                <div className={cn("mt-2 text-xs text-gray-500", textAlign)}>{t("fat_hint")}</div>
               </div>
 
               {/* Meals per day */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className={cn("block text-sm font-medium text-gray-700 mb-2", textAlign)}>
                   <span className="inline-flex items-center gap-2">
                     <Split className="w-4 h-4" />
-                    {t("meals_split")}
+                    {t("split_title")}
                   </span>
                 </label>
                 <div className="grid grid-cols-3 gap-3">
@@ -505,7 +483,7 @@ export function CalorieCalculator() {
             {calorieNeeds && targetCalories && macros && (
               <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-200">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-semibold text-gray-800">{t("result_for_goal")}</h4>
+                  <h4 className="font-semibold text-gray-800">{t("result_by_goal")}</h4>
                   <span
                     className={cn(
                       "text-xs px-3 py-1 rounded-full border bg-white text-gray-700",
@@ -523,14 +501,10 @@ export function CalorieCalculator() {
                       <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
                         <Flame className="w-5 h-5 text-blue-600" />
                       </div>
-                      <div className="text-right flex-1">
+                      <div className={cn("flex-1", textAlign)}>
                         <div className="text-xs text-gray-500">BMR</div>
-                        <div className="text-lg font-bold text-gray-900">
-                          {calorieNeeds.bmr}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {t("bmr_label")}
-                        </div>
+                        <div className="text-lg font-bold text-gray-900">{calorieNeeds.bmr}</div>
+                        <div className="text-xs text-gray-500">{t("metabolism_basic")}</div>
                       </div>
                     </div>
                   </div>
@@ -540,14 +514,10 @@ export function CalorieCalculator() {
                       <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
                         <Target className="w-5 h-5 text-purple-600" />
                       </div>
-                      <div className="text-right flex-1">
+                      <div className={cn("flex-1", textAlign)}>
                         <div className="text-xs text-gray-500">{t("target_calories")}</div>
-                        <div className="text-lg font-bold text-gray-900">
-                          {targetCalories}
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          {t("kcal")}/{t("day")}
-                        </div>
+                        <div className="text-lg font-bold text-gray-900">{targetCalories}</div>
+                        <div className="text-xs text-gray-500">{t("per_day")}</div>
                       </div>
                     </div>
                   </div>
@@ -560,14 +530,10 @@ export function CalorieCalculator() {
                       <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
                         <Beef className="w-5 h-5 text-blue-600" />
                       </div>
-                      <div className="text-right flex-1">
+                      <div className={cn("flex-1", textAlign)}>
                         <div className="text-xs text-gray-500">{t("protein")}</div>
-                        <div className="text-lg font-bold text-gray-900">
-                          {macros.proteinG}g
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          ≈ {macros.proteinCals} {t("kcal")}
-                        </div>
+                        <div className="text-lg font-bold text-gray-900">{macros.proteinG}g</div>
+                        <div className="text-xs text-gray-500">≈ {macros.proteinCals} {t("kcal")}</div>
                       </div>
                     </div>
                   </div>
@@ -577,14 +543,10 @@ export function CalorieCalculator() {
                       <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
                         <Wheat className="w-5 h-5 text-emerald-600" />
                       </div>
-                      <div className="text-right flex-1">
+                      <div className={cn("flex-1", textAlign)}>
                         <div className="text-xs text-gray-500">{t("carbs")}</div>
-                        <div className="text-lg font-bold text-gray-900">
-                          {macros.carbsG}g
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          ≈ {macros.carbsCals} {t("kcal")}
-                        </div>
+                        <div className="text-lg font-bold text-gray-900">{macros.carbsG}g</div>
+                        <div className="text-xs text-gray-500">≈ {macros.carbsCals} {t("kcal")}</div>
                       </div>
                     </div>
                   </div>
@@ -594,14 +556,10 @@ export function CalorieCalculator() {
                       <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
                         <Droplets className="w-5 h-5 text-amber-600" />
                       </div>
-                      <div className="text-right flex-1">
+                      <div className={cn("flex-1", textAlign)}>
                         <div className="text-xs text-gray-500">{t("fat")}</div>
-                        <div className="text-lg font-bold text-gray-900">
-                          {macros.fatG}g
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          ≈ {macros.fatCals} {t("kcal")}
-                        </div>
+                        <div className="text-lg font-bold text-gray-900">{macros.fatG}g</div>
+                        <div className="text-xs text-gray-500">≈ {macros.fatCals} {t("kcal")}</div>
                       </div>
                     </div>
                   </div>
@@ -610,40 +568,60 @@ export function CalorieCalculator() {
                 {perMeal && (
                   <div className="mt-4 bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
                     <div className="flex items-center justify-between mb-3">
-                      <div className="font-semibold text-gray-800 flex items-center gap-2">
+                      <div className={cn("font-semibold text-gray-800 flex items-center gap-2", textAlign)}>
                         <Gauge className="w-4 h-4" />
-                        {t("per_meal_split")} ({mealsPerDay})
+                        {t("per_meal")} ({mealsPerDay})
                       </div>
-                      <span className="text-xs text-gray-500">{t("rounded_note")}</span>
+                      <span className="text-xs text-gray-500">~</span>
                     </div>
 
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div className="bg-white rounded-2xl p-4 border border-indigo-200 shadow-sm">
-                        <div className="text-xs text-gray-500">{t("calories")}</div>
-                        <div className="text-lg font-bold text-gray-900">
-                          {perMeal.calories}
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center">
+                            <Flame className="w-5 h-5 text-indigo-600" />
+                          </div>
+                          <div className={cn("flex-1", textAlign)}>
+                            <div className="text-xs text-gray-500">{t("daily_calories_needed")}</div>
+                            <div className="text-lg font-bold text-gray-900">{perMeal.calories}</div>
+                            <div className="text-xs text-gray-500">{t("kcal")}</div>
+                          </div>
                         </div>
-                        <div className="text-xs text-gray-500">{t("kcal")}</div>
                       </div>
 
                       <div className="bg-white rounded-2xl p-4 border border-blue-200 shadow-sm">
-                        <div className="text-xs text-gray-500">{t("protein")}</div>
-                        <div className="text-lg font-bold text-gray-900">
-                          {perMeal.proteinG}g
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+                            <Beef className="w-5 h-5 text-blue-600" />
+                          </div>
+                          <div className={cn("flex-1", textAlign)}>
+                            <div className="text-xs text-gray-500">{t("protein")}</div>
+                            <div className="text-lg font-bold text-gray-900">{perMeal.proteinG}g</div>
+                          </div>
                         </div>
                       </div>
 
                       <div className="bg-white rounded-2xl p-4 border border-emerald-200 shadow-sm">
-                        <div className="text-xs text-gray-500">{t("carbs")}</div>
-                        <div className="text-lg font-bold text-gray-900">
-                          {perMeal.carbsG}g
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
+                            <Wheat className="w-5 h-5 text-emerald-600" />
+                          </div>
+                          <div className={cn("flex-1", textAlign)}>
+                            <div className="text-xs text-gray-500">{t("carbs")}</div>
+                            <div className="text-lg font-bold text-gray-900">{perMeal.carbsG}g</div>
+                          </div>
                         </div>
                       </div>
 
                       <div className="bg-white rounded-2xl p-4 border border-amber-200 shadow-sm">
-                        <div className="text-xs text-gray-500">{t("fat")}</div>
-                        <div className="text-lg font-bold text-gray-900">
-                          {perMeal.fatG}g
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+                            <Droplets className="w-5 h-5 text-amber-600" />
+                          </div>
+                          <div className={cn("flex-1", textAlign)}>
+                            <div className="text-xs text-gray-500">{t("fat")}</div>
+                            <div className="text-lg font-bold text-gray-900">{perMeal.fatG}g</div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -656,23 +634,19 @@ export function CalorieCalculator() {
                       <div className="mt-1">
                         <Sparkles className="w-5 h-5 text-blue-600" />
                       </div>
-                      <div className="flex-1">
+                      <div className={cn("flex-1", textAlign)}>
                         <div className="font-semibold text-gray-900">{t("smart_summary")}</div>
                         <div className="text-sm text-gray-700 mt-1">
-                          {t("top_calorie_source")}{" "}
+                          {t("top_cal_source")}{" "}
                           <span className="font-bold">{smartSummary.top.label}</span>.
                         </div>
-                        <div className="text-sm text-gray-600 mt-1">
-                          {smartSummary.tip}
-                        </div>
+                        <div className="text-sm text-gray-600 mt-1">{smartSummary.tip}</div>
                       </div>
                     </div>
                   </div>
                 )}
 
-                <div className="mt-3 text-xs text-gray-500 text-center">
-                  {t("macros_formula_note")}
-                </div>
+                <div className="mt-3 text-xs text-gray-500 text-center">{t("formula_note")}</div>
               </div>
             )}
           </div>
@@ -680,9 +654,9 @@ export function CalorieCalculator() {
 
         {/* Food Calorie Calculator */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-green-200 shadow-lg">
-          <h3 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+          <h3 className={cn("text-xl font-bold text-gray-800 mb-6 flex items-center gap-2", textAlign)}>
             <span className="text-2xl">🍽️</span>
-            {t("meal_calorie_calc")}
+            {t("food_calculator_title")}
           </h3>
 
           <button
@@ -690,29 +664,31 @@ export function CalorieCalculator() {
             className="w-full mb-4 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-2xl hover:shadow-lg transition-all font-medium"
             type="button"
           >
-            {showFoodSelector ? t("hide_food_list") : t("add_food")}
+            {showFoodSelector ? t("hide_foods") : t("add_food")}
           </button>
 
           {showFoodSelector && foods && (
             <div className="mb-6 max-h-64 overflow-y-auto border border-gray-200 rounded-2xl">
-              <div className="p-3 bg-gray-50 border-b border-gray-200 font-medium text-gray-700">
+              <div className={cn("p-3 bg-gray-50 border-b border-gray-200 font-medium text-gray-700", textAlign)}>
                 {t("choose_foods")}
               </div>
+
               {foods.map((food: any) => (
                 <button
                   key={food._id}
                   onClick={() => addFood(food._id)}
-                  className="w-full text-right px-3 py-2 hover:bg-gray-50 border-b border-gray-100 transition-all"
+                  className={cn(
+                    "w-full px-3 py-2 hover:bg-gray-50 border-b border-gray-100 transition-all",
+                    textAlign
+                  )}
                   type="button"
                 >
                   <div className="flex justify-between items-center gap-3">
-                    <div className="text-right">
-                      <div className="text-sm text-gray-800 font-medium">
-                        {food.nameAr || t("no_arabic_name")}
+                    <div className={cn(textAlign)}>
+                      <div className="text-sm text-gray-800 font-medium">{getFoodName(food)}</div>
+                      <div className="text-xs text-gray-500">
+                        {language === "ar" ? (food.name ? food.name : null) : (food.nameAr ? food.nameAr : null)}
                       </div>
-                      {food.name ? (
-                        <div className="text-xs text-gray-500">{food.name}</div>
-                      ) : null}
                     </div>
                     <span className="text-xs text-gray-600 whitespace-nowrap">
                       {food.caloriesPer100g} {t("kcal")}/100g
@@ -733,13 +709,11 @@ export function CalorieCalculator() {
                   key={index}
                   className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-100"
                 >
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-800">
-                      {food.nameAr || t("no_arabic_name")}
+                  <div className={cn("flex-1", textAlign)}>
+                    <div className="font-medium text-gray-800">{getFoodName(food)}</div>
+                    <div className="text-xs text-gray-500">
+                      {language === "ar" ? (food.name ? food.name : null) : (food.nameAr ? food.nameAr : null)}
                     </div>
-                    {food.name ? (
-                      <div className="text-xs text-gray-500">{food.name}</div>
-                    ) : null}
                     <div className="text-sm text-gray-600">
                       {Math.round((food.caloriesPer100g * selectedFood.quantity) / 100)}{" "}
                       {t("kcal")}
@@ -749,21 +723,18 @@ export function CalorieCalculator() {
                   <input
                     type="number"
                     value={selectedFood.quantity}
-                    onChange={(e) =>
-                      updateFoodQuantity(index, parseFloat(e.target.value) || 0)
-                    }
+                    onChange={(e) => updateFoodQuantity(index, parseFloat(e.target.value) || 0)}
                     className="w-20 px-2 py-1 border border-gray-200 rounded-xl text-sm focus:border-green-500 focus:ring-1 focus:ring-green-200 transition-all"
                     min="0"
                     step="10"
                   />
 
-                  <span className="text-sm text-gray-600">{t("grams")}</span>
+                  <span className="text-sm text-gray-600">g</span>
 
                   <button
                     onClick={() => removeFood(index)}
                     className="px-2 py-1 bg-red-100 text-red-600 rounded-xl hover:bg-red-200 transition-all"
                     type="button"
-                    aria-label={t("remove")}
                   >
                     ✕
                   </button>
@@ -774,35 +745,34 @@ export function CalorieCalculator() {
 
           {foodCalories && (
             <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl border border-green-200">
-              <h4 className="font-semibold text-gray-800 mb-3">
-                {t("meal_total")}
-              </h4>
+              <h4 className={cn("font-semibold text-gray-800 mb-3", textAlign)}>{t("total_meal")}</h4>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-white rounded-2xl p-4 border border-orange-200 shadow-sm">
-                  <div className="text-xs text-gray-500 mb-1">{t("calories")}</div>
-                  <div className="text-xl font-bold text-gray-900">
+                  <div className={cn("text-xs text-gray-500 mb-1", textAlign)}>{t("calories")}</div>
+                  <div className={cn("text-xl font-bold text-gray-900", textAlign)}>
                     {foodCalories.totalCalories}
                   </div>
-                  <div className="text-xs text-gray-500">{t("kcal")}</div>
+                  <div className={cn("text-xs text-gray-500", textAlign)}>{t("kcal")}</div>
                 </div>
 
                 <div className="bg-white rounded-2xl p-4 border border-blue-200 shadow-sm">
-                  <div className="text-xs text-gray-500 mb-1">{t("protein")}</div>
-                  <div className="text-xl font-bold text-gray-900">
+                  <div className={cn("text-xs text-gray-500 mb-1", textAlign)}>{t("protein")}</div>
+                  <div className={cn("text-xl font-bold text-gray-900", textAlign)}>
                     {foodCalories.totalProtein}g
                   </div>
                 </div>
 
                 <div className="bg-white rounded-2xl p-4 border border-emerald-200 shadow-sm">
-                  <div className="text-xs text-gray-500 mb-1">{t("carbs")}</div>
-                  <div className="text-xl font-bold text-gray-900">
+                  <div className={cn("text-xs text-gray-500 mb-1", textAlign)}>{t("carbs")}</div>
+                  <div className={cn("text-xl font-bold text-gray-900", textAlign)}>
                     {foodCalories.totalCarbs}g
                   </div>
                 </div>
 
                 <div className="bg-white rounded-2xl p-4 border border-amber-200 shadow-sm">
-                  <div className="text-xs text-gray-500 mb-1">{t("fat")}</div>
-                  <div className="text-xl font-bold text-gray-900">
+                  <div className={cn("text-xs text-gray-500 mb-1", textAlign)}>{t("fat")}</div>
+                  <div className={cn("text-xl font-bold text-gray-900", textAlign)}>
                     {foodCalories.totalFat}g
                   </div>
                 </div>
@@ -813,7 +783,7 @@ export function CalorieCalculator() {
           {selectedFoods.length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <div className="text-4xl mb-2">🍽️</div>
-              <p>{t("add_food_hint")}</p>
+              <p>{t("no_foods_selected")}</p>
             </div>
           )}
         </div>
@@ -821,51 +791,51 @@ export function CalorieCalculator() {
 
       {/* Tips */}
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-blue-200 shadow-lg">
-        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+        <h3 className={cn("text-xl font-bold text-gray-800 mb-4 flex items-center gap-2", textAlign)}>
           <span className="text-2xl">💡</span>
-          {t("smart_tips")}
+          {t("tips_title")}
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-            <div className="flex items-center gap-2 font-semibold text-gray-800 mb-2">
+            <div className={cn("flex items-center gap-2 font-semibold text-gray-800 mb-2", textAlign)}>
               <Sparkles className="w-4 h-4" />
               {t("tips_cut_title")}
             </div>
-            <ul className="text-sm text-gray-700 space-y-1">
-              <li>{t("tips_cut_1")}</li>
-              <li>{t("tips_cut_2")}</li>
-              <li>{t("tips_cut_3")}</li>
+            <ul className={cn("text-sm text-gray-700 space-y-1", textAlign)}>
+              <li>• {t("tips_cut_1")}</li>
+              <li>• {t("tips_cut_2")}</li>
+              <li>• {t("tips_cut_3")}</li>
             </ul>
           </div>
 
           <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-            <div className="flex items-center gap-2 font-semibold text-gray-800 mb-2">
+            <div className={cn("flex items-center gap-2 font-semibold text-gray-800 mb-2", textAlign)}>
               <Flame className="w-4 h-4" />
               {t("tips_maint_title")}
             </div>
-            <ul className="text-sm text-gray-700 space-y-1">
-              <li>{t("tips_maint_1")}</li>
-              <li>{t("tips_maint_2")}</li>
-              <li>{t("tips_maint_3")}</li>
+            <ul className={cn("text-sm text-gray-700 space-y-1", textAlign)}>
+              <li>• {t("tips_maint_1")}</li>
+              <li>• {t("tips_maint_2")}</li>
+              <li>• {t("tips_maint_3")}</li>
             </ul>
           </div>
 
           <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-            <div className="flex items-center gap-2 font-semibold text-gray-800 mb-2">
+            <div className={cn("flex items-center gap-2 font-semibold text-gray-800 mb-2", textAlign)}>
               <Gauge className="w-4 h-4" />
               {t("tips_bulk_title")}
             </div>
-            <ul className="text-sm text-gray-700 space-y-1">
-              <li>{t("tips_bulk_1")}</li>
-              <li>{t("tips_bulk_2")}</li>
-              <li>{t("tips_bulk_3")}</li>
+            <ul className={cn("text-sm text-gray-700 space-y-1", textAlign)}>
+              <li>• {t("tips_bulk_1")}</li>
+              <li>• {t("tips_bulk_2")}</li>
+              <li>• {t("tips_bulk_3")}</li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-4 text-xs text-gray-500">
-          {t("pro_mode_hint")}
+        <div className={cn("mt-4 text-xs text-gray-500", textAlign)}>
+          {t("pro_mode_note")}
         </div>
       </div>
     </div>

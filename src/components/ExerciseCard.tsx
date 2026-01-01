@@ -1,9 +1,8 @@
-// src/components/ExerciseCard.tsx
 import React, { useMemo, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { toast } from "sonner";
-import { useLanguage } from "@/lib/i18n";
+import { useLanguage } from "../lib/i18n";
 
 interface Exercise {
   _id: string;
@@ -51,7 +50,13 @@ function toYouTubeId(url?: string) {
 }
 
 export function ExerciseCard({ exercise }: ExerciseCardProps) {
-  const { t, language, dir } = useLanguage();
+  const { language, t } = useLanguage();
+
+  // ✅ نصوص حسب اللغة + fallback لو فاضي
+  const title = language === "ar" ? exercise.nameAr : exercise.name;
+  const desc = language === "ar" ? exercise.descriptionAr : exercise.description;
+  const muscle = language === "ar" ? exercise.muscleGroupAr : exercise.muscleGroup;
+  const steps = language === "ar" ? exercise.instructionsAr : exercise.instructions;
 
   const [showDetails, setShowDetails] = useState(false);
   const [isLogging, setIsLogging] = useState(false);
@@ -79,29 +84,6 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
     return `https://www.youtube.com/watch?v=${videoId}`;
   }, [videoId, exercise.videoUrl]);
 
-  // ✅ اختيار نصوص حسب اللغة
-  const title =
-    language === "ar"
-      ? (exercise.nameAr || exercise.name)
-      : (exercise.name || exercise.nameAr);
-
-  const subtitle = language === "ar" ? exercise.name : exercise.nameAr;
-
-  const description =
-    language === "ar"
-      ? (exercise.descriptionAr || exercise.description)
-      : (exercise.description || exercise.descriptionAr);
-
-  const muscleGroup =
-    language === "ar"
-      ? (exercise.muscleGroupAr || exercise.muscleGroup)
-      : (exercise.muscleGroup || exercise.muscleGroupAr);
-
-  const instructions =
-    language === "ar"
-      ? (exercise.instructionsAr?.length ? exercise.instructionsAr : exercise.instructions)
-      : (exercise.instructions?.length ? exercise.instructions : exercise.instructionsAr);
-
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "beginner":
@@ -115,6 +97,7 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
     }
   };
 
+  // ✅ ترجمة الصعوبة من DICT
   const getDifficultyText = (difficulty: string) => {
     switch (difficulty) {
       case "beginner":
@@ -145,7 +128,8 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
 
   const handleLogWorkout = async () => {
     try {
-      const estimatedCalories = exercise.caloriesBurned || Math.round(logData.duration * 5);
+      const estimatedCalories =
+        exercise.caloriesBurned || Math.round(logData.duration * 5);
 
       await logWorkout({
         exerciseId: exercise._id as any,
@@ -160,7 +144,8 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
       toast.success(t("workout_logged_success"));
       setIsLogging(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : t("something_went_wrong");
+      const message =
+        error instanceof Error ? error.message : t("something_went_wrong");
       toast.error(message);
     }
   };
@@ -173,7 +158,7 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
           <div className="w-full aspect-video">
             <iframe
               src={embedUrl}
-              title={title}
+              title={title || ""}
               className="w-full h-full"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               allowFullScreen
@@ -202,7 +187,11 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
         </div>
       ) : exercise.imageUrl ? (
         <div className="h-48 bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center">
-          <img src={exercise.imageUrl} alt={title} className="w-full h-full object-cover" />
+          <img
+            src={exercise.imageUrl}
+            alt={title || ""}
+            className="w-full h-full object-cover"
+          />
         </div>
       ) : (
         <div className="h-48 bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center text-orange-700/70">
@@ -213,12 +202,22 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
       <div className="p-6">
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
-          <div className={dir === "rtl" ? "text-right" : "text-left"}>
-            <h3 className="text-xl font-bold text-gray-800 mb-1">{title}</h3>
+          <div className="min-w-0">
+            <h3 className="text-xl font-bold text-gray-800 mb-1">
+              {title || (language === "ar" ? "بدون اسم" : "Untitled")}
+            </h3>
 
-            {subtitle ? (
-              <p className="text-sm text-gray-500" dir={language === "ar" ? "ltr" : "rtl"}>
-                {subtitle}
+            {/* لو العربي شغال: اعرض الإنجليزي تحت (اختياري) */}
+            {language === "ar" && exercise.name ? (
+              <p className="text-sm text-gray-500" dir="ltr">
+                {exercise.name}
+              </p>
+            ) : null}
+
+            {/* لو الإنجليزي شغال: اعرض العربي تحت (اختياري) */}
+            {language === "en" && exercise.nameAr ? (
+              <p className="text-sm text-gray-500" dir="rtl">
+                {exercise.nameAr}
               </p>
             ) : null}
           </div>
@@ -238,7 +237,7 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
         {/* Muscle Group */}
         <div className="mb-4">
           <span className="inline-flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">
-            🎯 {muscleGroup}
+            🎯 {muscle || (language === "ar" ? "غير محدد" : "Not set")}
           </span>
         </div>
 
@@ -246,7 +245,9 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
         <div className="grid grid-cols-3 gap-4 mb-4 text-center">
           {exercise.duration ? (
             <div className="bg-gray-50 rounded-lg p-2">
-              <div className="text-lg font-bold text-gray-800">{exercise.duration}</div>
+              <div className="text-lg font-bold text-gray-800">
+                {exercise.duration}
+              </div>
               <div className="text-xs text-gray-600">{t("minutes")}</div>
             </div>
           ) : null}
@@ -260,13 +261,17 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
 
           {exercise.caloriesBurned ? (
             <div className="bg-gray-50 rounded-lg p-2">
-              <div className="text-lg font-bold text-gray-800">{exercise.caloriesBurned}</div>
+              <div className="text-lg font-bold text-gray-800">
+                {exercise.caloriesBurned}
+              </div>
               <div className="text-xs text-gray-600">{t("kcal")}</div>
             </div>
           ) : null}
         </div>
 
-        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{description}</p>
+        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+          {desc || (language === "ar" ? "لا يوجد وصف" : "No description")}
+        </p>
 
         {/* Equipment */}
         {exercise.equipment?.length > 0 ? (
@@ -276,7 +281,10 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
             </h4>
             <div className="flex flex-wrap gap-1">
               {exercise.equipment.map((item, index) => (
-                <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                <span
+                  key={index}
+                  className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs"
+                >
                   {item}
                 </span>
               ))}
@@ -306,9 +314,11 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
         {/* Details */}
         {showDetails && (
           <div className="mt-4 pt-4 border-t border-gray-200">
-            <h4 className="font-semibold text-gray-800 mb-2">{t("how_to_perform")}</h4>
+            <h4 className="font-semibold text-gray-800 mb-2">
+              {t("how_to_perform")}
+            </h4>
             <ol className="list-decimal list-inside space-y-1 text-sm text-gray-600">
-              {instructions.map((instruction, index) => (
+              {(steps || []).map((instruction, index) => (
                 <li key={index}>{instruction}</li>
               ))}
             </ol>
@@ -368,7 +378,7 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
 
               {Array.from({ length: logData.sets }, (_, index) => (
                 <div key={index} className="flex gap-2 items-center">
-                  <span className="text-sm text-gray-600 w-24">
+                  <span className="text-sm text-gray-600 w-16">
                     {t("set")} {index + 1}:
                   </span>
 
@@ -408,7 +418,9 @@ export function ExerciseCard({ exercise }: ExerciseCardProps) {
               </label>
               <textarea
                 value={logData.notes}
-                onChange={(e) => setLogData((prev) => ({ ...prev, notes: e.target.value }))}
+                onChange={(e) =>
+                  setLogData((prev) => ({ ...prev, notes: e.target.value }))
+                }
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition-all"
                 rows={2}
                 placeholder={t("notes_placeholder")}

@@ -43,7 +43,8 @@ async function assertAdmin(ctx: any) {
 
 export const getAllFoods = query({
   args: {
-    category: v.optional(v.string()), // ممكن تكون عربي أو إنجليزي
+    // ✅ ملاحظة: الـ UI عندك بيرسل عربية (مثل "خضروات") فبنفلتر على categoryAr
+    category: v.optional(v.string()),
     mealType: v.optional(MealType),
 
     isDiabeticFriendly: v.optional(v.boolean()),
@@ -53,49 +54,19 @@ export const getAllFoods = query({
   handler: async (ctx, args) => {
     let foods: any[] = [];
 
-    // ✅ Helper: جرّب categoryAr الأول ثم category
-    const fetchByCategoryOrAr = async () => {
-      if (!args.category) return [];
-
-      // (1) category + mealType
-      if (args.category && args.mealType) {
-        const byAr = await ctx.db
-          .query("foods")
-          .withIndex("by_categoryAr_mealType", (q: any) =>
-            q.eq("categoryAr", args.category!).eq("mealType", args.mealType!)
-          )
-          .collect();
-
-        if (byAr.length) return byAr;
-
-        const byEn = await ctx.db
-          .query("foods")
-          .withIndex("by_category_mealType", (q: any) =>
-            q.eq("category", args.category!).eq("mealType", args.mealType!)
-          )
-          .collect();
-
-        return byEn;
-      }
-
-      // (2) category فقط
-      const byAr = await ctx.db
+    // ✅ استخدم أفضل index حسب الفلاتر (على categoryAr)
+    if (args.category && args.mealType) {
+      foods = await ctx.db
+        .query("foods")
+        .withIndex("by_categoryAr_mealType", (q: any) =>
+          q.eq("categoryAr", args.category!).eq("mealType", args.mealType!)
+        )
+        .collect();
+    } else if (args.category) {
+      foods = await ctx.db
         .query("foods")
         .withIndex("by_categoryAr", (q: any) => q.eq("categoryAr", args.category!))
         .collect();
-
-      if (byAr.length) return byAr;
-
-      const byEn = await ctx.db
-        .query("foods")
-        .withIndex("by_category", (q: any) => q.eq("category", args.category!))
-        .collect();
-
-      return byEn;
-    };
-
-    if (args.category) {
-      foods = await fetchByCategoryOrAr();
     } else if (args.mealType) {
       foods = await ctx.db
         .query("foods")
@@ -116,7 +87,7 @@ export const getAllFoods = query({
       foods = foods.filter((f: any) => f.isChildFriendly === args.isChildFriendly);
     }
 
-    // ✅ ترتيب ذكي
+    // ✅ ترتيب ذكي (توحيد أسماء الحقول: sugar / fiber)
     const score = (f: any) => {
       const protein = Number(f.proteinPer100g || 0);
       const carbs = Number(f.carbsPer100g || 0);
@@ -127,14 +98,21 @@ export const getAllFoods = query({
       const sodium = Number(f.sodium || 0);
 
       if (args.isDiabeticFriendly) {
+        // سكري: سكر أقل + ألياف أعلى + كارب أقل
         return fiber * 3 + protein * 1.5 - sugar * 4 - carbs * 0.7 - fat * 0.1;
       }
+
       if (args.isSeniorFriendly) {
+        // كبار السن: بروتين أعلى + صوديوم أقل
         return protein * 3 + fiber * 1.2 - carbs * 0.6 - sodium * 0.01;
       }
+
       if (args.isChildFriendly) {
+        // أطفال: سكر أقل
         return protein * 2 + fiber * 1 - sugar * 3 - carbs * 0.2;
       }
+
+      // عام: توازن
       return protein * 2 + fiber * 2 - sugar * 2 - carbs * 0.2 - fat * 0.05;
     };
 

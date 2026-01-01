@@ -1,4 +1,3 @@
-// src/App.tsx
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { SignInForm } from "./SignInForm";
@@ -43,6 +42,18 @@ type HealthSub = "diabetes" | "seniors" | "children";
 export default function App() {
   const { t, language, dir, setLanguage } = useLanguage();
 
+  // ✅ helper يرجّع fallback لو المفتاح مش موجود
+  const tr = (key: string, fallback: string) => {
+    try {
+      const v = typeof t === "function" ? (t as any)(key) : "";
+      // لو المفتاح مش موجود t بيرجع نفس اسم المفتاح
+      if (!v || v === key) return fallback;
+      return v;
+    } catch {
+      return fallback;
+    }
+  };
+
   const [activeSection, setActiveSection] = useState<SectionId>("dashboard");
   const [healthTab, setHealthTab] = useState<HealthSub>("diabetes");
 
@@ -51,24 +62,25 @@ export default function App() {
 
   const topNavItems = useMemo(
     () => [
-      { id: "dashboard" as const, label: t("dashboard"), icon: Home },
-      { id: "exercises" as const, label: t("exercises"), icon: Dumbbell },
-      { id: "nutrition" as const, label: t("nutrition"), icon: Salad },
-      { id: "coaches" as const, label: t("coaches"), icon: Users },
-      { id: "calculator" as const, label: t("calculator"), icon: Calculator },
-      { id: "health" as const, label: t("health"), icon: HeartPulse },
+      { id: "dashboard" as const, label: tr("dashboard", "الرئيسية"), icon: Home },
+      { id: "exercises" as const, label: tr("exercises", "التمارين"), icon: Dumbbell },
+      { id: "nutrition" as const, label: tr("nutrition", "التغذية"), icon: Salad },
+      { id: "coaches" as const, label: tr("coaches", "المدربون"), icon: Users },
+      { id: "calculator" as const, label: tr("calculator", "الحاسبة"), icon: Calculator },
+      { id: "health" as const, label: tr("health", "الصحة"), icon: HeartPulse },
     ],
     [language]
   );
 
   const bottomNavItems = useMemo(
     () => [
-      { id: "dashboard" as const, label: t("dashboard"), icon: Home },
-      { id: "exercises" as const, label: t("exercises"), icon: Dumbbell },
-      { id: "nutrition" as const, label: t("nutrition"), icon: Salad },
-      { id: "coaches" as const, label: t("coaches"), icon: Users },
-      { id: "health" as const, label: t("health"), icon: HeartPulse },
-      { id: "calculator" as const, label: t("calculators"), icon: Calculator },
+      { id: "dashboard" as const, label: tr("dashboard", "الرئيسية"), icon: Home },
+      { id: "exercises" as const, label: tr("exercises", "التمارين"), icon: Dumbbell },
+      { id: "nutrition" as const, label: tr("nutrition", "التغذية"), icon: Salad },
+      { id: "coaches" as const, label: tr("coaches", "المدربون"), icon: Users },
+      { id: "health" as const, label: tr("health", "الصحة"), icon: HeartPulse },
+      // ✅ هنا لازم calculators مش calculator
+      { id: "calculator" as const, label: tr("calculators", "حاسبات"), icon: Calculator },
     ],
     [language]
   );
@@ -88,7 +100,7 @@ export default function App() {
                 Gym Pro
               </h1>
               <p className="text-[11px] text-slate-500 -mt-0.5">
-                {t("app_tagline")}
+                {tr("app_tagline", "لياقة • تغذية • صحة")}
               </p>
             </div>
           </div>
@@ -119,7 +131,7 @@ export default function App() {
                 >
                   <span className="inline-flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4" />
-                    {t("admin_panel")}
+                    {tr("admin_panel", "لوحة الإدارة")}
                   </span>
                 </button>
               )}
@@ -128,10 +140,13 @@ export default function App() {
                 <SignOutButton />
               </div>
 
+              {/* زر خروج صغير للجوال */}
               <button
                 className="sm:hidden p-2 rounded-2xl text-slate-600 hover:bg-slate-50"
-                onClick={() => {}}
-                aria-label={t("logout")}
+                onClick={() => {
+                  // الأفضل تستخدم SignOutButton للجوال لو عندك نسخة زر
+                }}
+                aria-label={language === "ar" ? "خروج" : "Logout"}
                 type="button"
               >
                 <LogOut className="w-5 h-5" />
@@ -181,7 +196,7 @@ export default function App() {
                 )}
 
                 {activeSection === "exercises" && <ExerciseSection />}
-                {activeSection === "nutrition" && <NutritionSection showHeader />}
+                {activeSection === "nutrition" && <NutritionSection />}
                 {activeSection === "calculator" && <CalorieCalculator />}
                 {activeSection === "coaches" && <Coaches />}
 
@@ -191,40 +206,42 @@ export default function App() {
                     <div className="bg-white/80 backdrop-blur rounded-3xl p-4 border border-emerald-100 shadow-sm">
                       <h2 className="text-lg sm:text-xl font-extrabold text-slate-800 flex items-center gap-2">
                         <HeartPulse className="w-5 h-5 text-emerald-700" />
-                        {t("health")}
+                        {tr("health", "الصحة")}
                       </h2>
                       <p className="text-sm text-slate-600 mt-1">
-                        {t("health_desc")}
+                        {tr(
+                          "health_desc",
+                          "اختر الفئة وستظهر نفس بيانات التغذية المخصصة لها."
+                        )}
                       </p>
 
                       <div className="mt-4 flex flex-wrap gap-2">
                         <Chip
                           active={healthTab === "diabetes"}
                           onClick={() => setHealthTab("diabetes")}
-                          label={t("diabetes")}
+                          label={tr("diabetes", "مرضى السكري")}
                         />
                         <Chip
                           active={healthTab === "seniors"}
                           onClick={() => setHealthTab("seniors")}
-                          label={t("seniors")}
+                          label={tr("seniors", "كبار السن")}
                         />
                         <Chip
                           active={healthTab === "children"}
                           onClick={() => setHealthTab("children")}
-                          label={t("children")}
+                          label={tr("children", "الأطفال")}
                         />
                       </div>
                     </div>
 
-                    {/* ✅ مهم: NutritionSection داخل health بدون header */}
                     {healthTab === "diabetes" && (
-                      <NutritionSection targetGroup="diabetes" showHeader={false} />
+                      <NutritionSection targetGroup="diabetes" />
                     )}
                     {healthTab === "seniors" && (
-                      <NutritionSection targetGroup="seniors" showHeader={false} />
+                      <NutritionSection targetGroup="seniors" />
                     )}
                     {healthTab === "children" && (
-                      <NutritionSection targetGroup="children" showHeader={false} />
+                      <NutritionSection targetGroup="children" />
                     )}
                   </div>
                 )}
@@ -275,7 +292,9 @@ export default function App() {
                 <h1 className="text-3xl font-extrabold text-emerald-700 mb-2">
                   Gym Pro
                 </h1>
-                <p className="text-slate-600">{t("sign_in_sub")}</p>
+                <p className="text-slate-600">
+                  {tr("sign_in_sub", "رحلتك نحو اللياقة تبدأ هنا")}
+                </p>
               </div>
               <SignInForm />
             </div>

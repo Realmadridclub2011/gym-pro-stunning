@@ -52,12 +52,12 @@ type MuscleShape = {
  */
 const BODY_IMAGE_IDS: Record<"male" | "female", Record<Side, string>> = {
   male: {
-    front: "kg21vbepy2qx5pq5eqb7dvb6957xbwdb",
-    back: "kg2accqa2xkbgmjd8384p278yd7xb650",
+    front: "kg23qpdfn4hh88r3vanzj5jb8x7ydh09",
+    back: "kg2a34dafa8169a8mdcs8t7m817ycszf",
   },
   female: {
-    front: "kg2fe82w0fpa626njz540392dd7y3vf0",
-    back: "kg224af4xecsw1zvnvt9hx060x7y2qjn",
+    front: "kg256ccgprrsn4r63h8z83b59h7yc8jk",
+    back: "kg29t6mvnf3q8sdm4xhgxfmkxh7ydyyw",
   },
 };
 

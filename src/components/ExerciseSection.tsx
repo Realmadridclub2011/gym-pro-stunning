@@ -8,21 +8,18 @@ import { useLanguage } from "../lib/i18n";
 
 type Side = "front" | "back";
 
-type Diff = "" | "beginner" | "intermediate" | "advanced";
-type Cat = "" | "strength" | "cardio" | "flexibility" | "balance";
-
 export function ExerciseSection() {
   const { t, language, dir } = useLanguage();
-
+  
   const [selectedGender, setSelectedGender] = useState<"male" | "female">("male");
   const [selectedMuscleGroup, setSelectedMuscleGroup] = useState<string>("");
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Diff>("");
-  const [selectedCategory, setSelectedCategory] = useState<Cat>("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
 
+  // ✅ جديد: نعرف احنا أمام ولا خلف + العضلة اللي واقف عليها
   const [bodySide, setBodySide] = useState<Side>("front");
   const [hoveredMuscle, setHoveredMuscle] = useState<{ id: string; name: string } | null>(null);
 
-  // ✅ Query
   const exercises = useQuery(api.exercises.getAllExercises, {
     muscleGroup: selectedMuscleGroup || undefined,
     difficulty: selectedDifficulty
@@ -34,7 +31,7 @@ export function ExerciseSection() {
       : undefined,
   });
 
-  // ✅ Muscle Groups Labels (Front/Back) bilingual
+  // ✅ المجموعات العضلية تتغير حسب الأمامي/الخلفي
   const muscleGroups = useMemo(() => {
     if (bodySide === "front") {
       return [
@@ -46,8 +43,6 @@ export function ExerciseSection() {
         { id: "Abs", name: language === "ar" ? "البطن" : "Abs" },
         { id: "Obliques", name: language === "ar" ? "الخواصر" : "Obliques" },
         { id: "Quads", name: language === "ar" ? "الفخذ الأمامي" : "Quads" },
-        // ⚠️ انت كنت حاطط Quadriceps = سمانة (ده غلط غالبًا)
-        // لو مسارك في SVG اسمه Quadriceps وده فعلاً سمانة عندك خلّيه زي ما هو
         { id: "Quadriceps", name: language === "ar" ? "السمانة" : "Calves" },
       ];
     }
@@ -71,25 +66,14 @@ export function ExerciseSection() {
   const selectedMuscleLabel =
     muscleGroups.find((m) => m.id === selectedMuscleGroup)?.name || "";
 
-  // ✅ Header title for list
-  const listTitle = useMemo(() => {
-    if (selectedMuscleLabel) {
-      // "Exercises for X" في EN / "تمارين X" في AR (مفتاح exercises_for عندك)
-      return language === "ar"
-        ? `${t("exercises_for" as any)} ${selectedMuscleLabel}`
-        : `${t("exercises_for" as any)} ${selectedMuscleLabel}`;
-    }
-    return t("exercises" as any);
-  }, [selectedMuscleLabel, language]);
-
   return (
     <div className="space-y-6" dir={dir} lang={language}>
       {/* Header */}
       <div className="flex flex-col gap-2">
-        <h2 className="text-3xl font-extrabold text-gray-900">
-          {t("exercise_section_title" as any)}
-        </h2>
-        <p className="text-gray-600">{t("exercise_section_desc" as any)}</p>
+        <h2 className="text-3xl font-extrabold text-gray-900">{t("exercise_section_title" as any)}</h2>
+        <p className="text-gray-600">
+          {t("exercise_section_desc" as any)}
+        </p>
       </div>
 
       {/* Top controls row */}
@@ -102,22 +86,23 @@ export function ExerciseSection() {
               setSelectedMuscleGroup("");
             }}
             className={`px-4 py-2 rounded-xl text-sm font-bold transition ${
-              selectedGender === "male" ? "bg-black text-white" : "text-gray-700 hover:bg-gray-50"
+              selectedGender === "male"
+                ? "bg-black text-white"
+                : "text-gray-700 hover:bg-gray-50"
             }`}
-            type="button"
           >
             👨 {t("men" as any)}
           </button>
-
           <button
             onClick={() => {
               setSelectedGender("female");
               setSelectedMuscleGroup("");
             }}
             className={`px-4 py-2 rounded-xl text-sm font-bold transition ${
-              selectedGender === "female" ? "bg-black text-white" : "text-gray-700 hover:bg-gray-50"
+              selectedGender === "female"
+                ? "bg-black text-white"
+                : "text-gray-700 hover:bg-gray-50"
             }`}
-            type="button"
           >
             👩 {t("women" as any)}
           </button>
@@ -125,10 +110,9 @@ export function ExerciseSection() {
 
         {/* Filters */}
         <div className="flex flex-wrap gap-2">
-          {/* Difficulty */}
           <select
             value={selectedDifficulty}
-            onChange={(e) => setSelectedDifficulty(e.target.value as Diff)}
+            onChange={(e) => setSelectedDifficulty(e.target.value)}
             className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-black"
           >
             <option value="">{t("all_levels" as any)}</option>
@@ -137,10 +121,9 @@ export function ExerciseSection() {
             <option value="advanced">{t("advanced" as any)}</option>
           </select>
 
-          {/* Category */}
           <select
             value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value as Cat)}
+            onChange={(e) => setSelectedCategory(e.target.value)}
             className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-bold focus:outline-none focus:ring-2 focus:ring-black"
           >
             <option value="">{t("all_types" as any)}</option>
@@ -158,10 +141,7 @@ export function ExerciseSection() {
         <div className="lg:col-span-1">
           <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6 sticky top-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-extrabold text-gray-900">
-                {t("selected_muscle" as any)}
-              </h3>
-
+              <h3 className="text-lg font-extrabold text-gray-900">{t("selected_muscle" as any)}</h3>
               <div className="inline-flex bg-gray-100 rounded-xl p-1">
                 <button
                   onClick={() => {
@@ -169,22 +149,23 @@ export function ExerciseSection() {
                     setSelectedMuscleGroup("");
                   }}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                    bodySide === "front" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600"
+                    bodySide === "front"
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-600"
                   }`}
-                  type="button"
                 >
                   {t("front_view" as any)}
                 </button>
-
                 <button
                   onClick={() => {
                     setBodySide("back");
                     setSelectedMuscleGroup("");
                   }}
                   className={`px-3 py-1 rounded-lg text-xs font-bold transition ${
-                    bodySide === "back" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600"
+                    bodySide === "back"
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-600"
                   }`}
-                  type="button"
                 >
                   {t("back_view" as any)}
                 </button>
@@ -201,22 +182,12 @@ export function ExerciseSection() {
               />
             </div>
 
-            {/* Selected / Hover display */}
             {selectedMuscleLabel ? (
               <div className="text-center">
                 <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-red-50 border border-red-200">
                   <span className="w-3 h-3 rounded-full bg-red-500" />
                   <span className="text-sm font-extrabold text-red-900">
                     {selectedMuscleLabel}
-                  </span>
-                </div>
-              </div>
-            ) : hoveredMuscle?.name ? (
-              <div className="text-center">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-gray-50 border border-gray-200">
-                  <span className="w-3 h-3 rounded-full bg-gray-400" />
-                  <span className="text-sm font-extrabold text-gray-800">
-                    {hoveredMuscle.name}
                   </span>
                 </div>
               </div>
@@ -231,16 +202,16 @@ export function ExerciseSection() {
         {/* Exercises List */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-6">
-            <h3 className="text-xl font-extrabold text-gray-900 mb-4">{listTitle}</h3>
+            <h3 className="text-xl font-extrabold text-gray-900 mb-4">
+              {selectedMuscleLabel
+                ? `${t("exercises_for" as any)} ${selectedMuscleLabel}`
+                : t("exercises" as any)}
+            </h3>
 
             {exercises === undefined ? (
-              <div className="py-12 text-center text-gray-500">
-                {t("loading" as any)}
-              </div>
+              <div className="py-12 text-center text-gray-500">{t("loading" as any)}</div>
             ) : exercises.length === 0 ? (
-              <div className="py-12 text-center text-gray-500">
-                {t("no_exercises_found" as any)}
-              </div>
+              <div className="py-12 text-center text-gray-500">{t("no_exercises_found" as any)}</div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {exercises.map((ex: any) => (
